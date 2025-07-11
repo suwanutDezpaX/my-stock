@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>โปรแกรมคำนวณกำไรพอร์ตหุ้น (บันทึกได้)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1100px;
+            margin: auto;
+            background: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #1c1e21;
+            border-bottom: 2px solid #f0f2f5;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        .portfolio-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        .summary-card {
+            background-color: #f7f8fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        .summary-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 1em;
+            color: #606770;
+        }
+        .summary-card p {
+            margin: 0;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        .add-stock-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            align-items: flex-end;
+            margin-bottom: 25px;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #dddfe2;
+            border-radius: 6px;
+            font-size: 1em;
+            box-sizing: border-box;
+            font-family: 'Sarabun', sans-serif;
+        }
+        button {
+            padding: 10px;
+            background-color: #1877f2;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            height: 42px;
+        }
+        button:hover { background-color: #166fe5; }
+        .delete-btn {
+            background-color: #fa383e;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .table-container { overflow-x: auto; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            white-space: nowrap;
+        }
+        th { background-color: #f7f8fa; }
+        tr:hover { background-color: #f5f5f5; }
+        .editable-input {
+            text-align: right;
+            border: 1px dashed #ccc;
+            background-color: #fcfcfc;
+            max-width: 100px;
+        }
+        .editable-input:focus {
+            outline: 1px solid #1877f2;
+            background-color: #fff;
+        }
+        .profit { color: #31a24c; font-weight: bold; }
+        .loss { color: #fa383e; font-weight: bold; }
+        .text-right { text-align: right; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>My PORT 📊</h1>
+
+        <div class="portfolio-summary">
+            <div class="summary-card"><h3>มูลค่าลงทุนรวม</h3><p id="totalInvestment">฿0.00</p></div>
+            <div class="summary-card"><h3>มูลค่าพอร์ตปัจจุบัน</h3><p id="totalCurrentValue">฿0.00</p></div>
+            <div class="summary-card"><h3>กำไร/ขาดทุนรวม</h3><p id="totalProfitLoss">฿0.00</p></div>
+            <div class="summary-card"><h3>กำไร/ขาดทุนรวม (%)</h3><p id="totalProfitLossPercent">0.00%</p></div>
+        </div>
+
+        <h2>เพิ่มหุ้นในพอร์ต</h2>
+        <div class="add-stock-form">
+            <div class="input-group"><label for="stockSymbol">ชื่อหุ้น</label><input type="text" id="stockSymbol" placeholder="เช่น PTT"></div>
+            <div class="input-group"><label for="buyPrice">ราคาซื้อ (ต่อหุ้น)</label><input type="number" id="buyPrice" placeholder="50.25" step="0.01"></div>
+            <div class="input-group"><label for="shares">จำนวนหุ้น</label><input type="number" id="shares" placeholder="1000"></div>
+            <div class="input-group"><label for="currentPrice">ราคาปัจจุบัน</label><input type="number" id="currentPrice" placeholder="55.00" step="0.01"></div>
+            <button id="addStockBtn">เพิ่มหุ้น</button>
+        </div>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ชื่อหุ้น</th>
+                        <th class="text-right">ราคาซื้อ</th>
+                        <th class="text-right">จำนวนหุ้น</th>
+                        <th class="text-right">ราคาปัจจุบัน</th>
+                        <th class="text-right">ต้นทุนรวม</th>
+                        <th class="text-right">มูลค่าปัจจุบัน</th>
+                        <th class="text-right">กำไร/ขาดทุน (฿)</th>
+                        <th class="text-right">กำไร/ขาดทุน (%)</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="stockList"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- STATE AND CONSTANTS ---
+        let portfolio = [];
+        const STORAGE_KEY = 'stockPortfolioV1';
+        const COMMISSION_RATE = 0.00157;
+        const VAT_RATE = 0.07;
+
+        // --- DOM ELEMENTS ---
+        const addStockBtn = document.getElementById('addStockBtn');
+        const stockListBody = document.getElementById('stockList');
+        const stockSymbolInput = document.getElementById('stockSymbol');
+        const buyPriceInput = document.getElementById('buyPrice');
+        const sharesInput = document.getElementById('shares');
+        const currentPriceInput = document.getElementById('currentPrice');
+        const summaryElements = {
+            totalInvestment: document.getElementById('totalInvestment'),
+            totalCurrentValue: document.getElementById('totalCurrentValue'),
+            totalProfitLoss: document.getElementById('totalProfitLoss'),
+            totalProfitLossPercent: document.getElementById('totalProfitLossPercent')
+        };
+        
+        // --- LOCAL STORAGE FUNCTIONS ---
+        function savePortfolio() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(portfolio));
+        }
+
+        function loadPortfolio() {
+            const savedData = localStorage.getItem(STORAGE_KEY);
+            portfolio = savedData ? JSON.parse(savedData) : [];
+        }
+
+        // --- EVENT LISTENERS ---
+        addStockBtn.addEventListener('click', addStock);
+        stockListBody.addEventListener('input', handleTableInput);
+        stockListBody.addEventListener('click', handleTableClick);
+
+        // --- CORE FUNCTIONS ---
+        function addStock() {
+            const symbol = stockSymbolInput.value.trim().toUpperCase();
+            const buyPrice = parseFloat(buyPriceInput.value);
+            const shares = parseInt(sharesInput.value);
+            const currentPrice = parseFloat(currentPriceInput.value);
+
+            if (!symbol || isNaN(buyPrice) || isNaN(shares) || buyPrice <= 0 || shares <= 0) {
+                alert('กรุณากรอก ชื่อหุ้น, ราคาซื้อ, และจำนวนหุ้นให้ครบถ้วนและถูกต้อง');
+                return;
+            }
+
+            portfolio.push({ id: Date.now(), symbol, buyPrice, shares, currentPrice: isNaN(currentPrice) ? 0 : currentPrice });
+            
+            stockSymbolInput.value = '';
+            buyPriceInput.value = '';
+            sharesInput.value = '';
+            currentPriceInput.value = '';
+            stockSymbolInput.focus();
+
+            savePortfolio();
+            renderPortfolio();
+        }
+
+        function handleTableClick(e) {
+            if (e.target.classList.contains('delete-btn')) {
+                const idToDelete = parseInt(e.target.dataset.id);
+                portfolio = portfolio.filter(stock => stock.id !== idToDelete);
+                savePortfolio();
+                renderPortfolio();
+            }
+        }
+        
+        function handleTableInput(e) {
+            if (e.target.classList.contains('editable-input')) {
+                const idToUpdate = parseInt(e.target.dataset.id);
+                const fieldToUpdate = e.target.dataset.field;
+                const newValue = parseFloat(e.target.value) || 0;
+
+                const stock = portfolio.find(s => s.id === idToUpdate);
+                if (stock) {
+                    stock[fieldToUpdate] = newValue;
+                    updateRowAndSummary(e.target.closest('tr'), stock);
+                    savePortfolio(); // Save on every edit
+                }
+            }
+        }
+        
+        function updateRowAndSummary(row, stock) {
+            const cost = stock.buyPrice * stock.shares;
+            const costWithFee = cost > 0 ? cost * (1 + (COMMISSION_RATE * (1 + VAT_RATE))) : 0;
+            const value = stock.currentPrice * stock.shares;
+            const valueWithFee = value > 0 ? value * (1 - (COMMISSION_RATE * (1 + VAT_RATE))) : 0;
+            const profitLoss = valueWithFee - costWithFee;
+            const profitLossPercent = costWithFee > 0 ? (profitLoss / costWithFee) * 100 : 0;
+
+            row.querySelector('.cost-cell').textContent = formatCurrency(costWithFee);
+            row.querySelector('.value-cell').textContent = formatCurrency(valueWithFee);
+            const profitCell = row.querySelector('.profit-cell');
+            const percentCell = row.querySelector('.percent-cell');
+            profitCell.textContent = formatCurrency(profitLoss);
+            percentCell.textContent = `${profitLossPercent.toFixed(2)}%`;
+
+            const profitClass = profitLoss > 0 ? 'profit' : 'loss';
+            [profitCell, percentCell].forEach(cell => {
+                cell.className = `text-right ${profitClass} ${cell.classList.contains('profit-cell') ? 'profit-cell' : 'percent-cell'}`;
+            });
+
+            updateSummary();
+        }
+        
+        function renderPortfolio() {
+            stockListBody.innerHTML = '';
+            portfolio.forEach(stock => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><b>${stock.symbol}</b></td>
+                    <td class="text-right">${formatCurrency(stock.buyPrice)}</td>
+                    <td>
+                        <input type="number" value="${stock.shares}" data-id="${stock.id}" data-field="shares" class="editable-input shares-input" min="0">
+                    </td>
+                    <td>
+                        <input type="number" value="${stock.currentPrice.toFixed(2)}" data-id="${stock.id}" data-field="currentPrice" class="editable-input price-input" step="0.01" min="0">
+                    </td>
+                    <td class="text-right cost-cell"></td>
+                    <td class="text-right value-cell"></td>
+                    <td class="text-right profit-cell"></td>
+                    <td class="text-right percent-cell"></td>
+                    <td><button class="delete-btn" data-id="${stock.id}">X</button></td>
+                `;
+                stockListBody.appendChild(row);
+                updateRowAndSummary(row, stock);
+            });
+            if (portfolio.length === 0) {
+                updateSummary();
+            }
+        }
+        
+        function updateSummary() {
+            let totalInvestment = 0;
+            let totalCurrentValue = 0;
+
+            portfolio.forEach(stock => {
+                const cost = stock.buyPrice * stock.shares;
+                totalInvestment += cost > 0 ? cost * (1 + (COMMISSION_RATE * (1 + VAT_RATE))) : 0;
+                const value = stock.currentPrice * stock.shares;
+                totalCurrentValue += value > 0 ? value * (1 - (COMMISSION_RATE * (1 + VAT_RATE))) : 0;
+            });
+
+            const totalProfitLoss = totalCurrentValue - totalInvestment;
+            const totalProfitLossPercent = totalInvestment > 0 ? (totalProfitLoss / totalInvestment) * 100 : 0;
+            
+            summaryElements.totalInvestment.textContent = formatCurrency(totalInvestment, '฿');
+            summaryElements.totalCurrentValue.textContent = formatCurrency(totalCurrentValue, '฿');
+            summaryElements.totalProfitLoss.textContent = formatCurrency(totalProfitLoss, '฿');
+            summaryElements.totalProfitLossPercent.textContent = `${totalProfitLossPercent.toFixed(2)}%`;
+
+            const summaryProfitClass = totalProfitLoss > 0 ? 'profit' : (totalProfitLoss < 0 ? 'loss' : '');
+            [summaryElements.totalCurrentValue, summaryElements.totalProfitLoss, summaryElements.totalProfitLossPercent].forEach(el => {
+                el.className = ``; // Reset class
+                if (summaryProfitClass) el.classList.add(summaryProfitClass);
+            });
+        }
+
+        function formatCurrency(value, prefix = '') {
+            return `${prefix}${value.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        }
+
+        // --- INITIALIZATION ---
+        function init() {
+            loadPortfolio();
+            renderPortfolio();
+        }
+
+        init();
+    });
+    </script>
+</body>
+</html>
